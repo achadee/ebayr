@@ -55,6 +55,15 @@ module Ebayr #:nodoc:
       XML
     end
 
+    def body_without_cred
+      <<-XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <#{@command}Request xmlns="urn:ebay:apis:eBLBaseComponents">
+          #{input_xml}
+        </#{@command}Request>
+      XML
+    end
+
     # Makes a HTTP connection and sends the request, returning an
     # Ebayr::Response
     def send
@@ -70,11 +79,20 @@ module Ebayr #:nodoc:
       end
 
       post = Net::HTTP::Post.new(@uri.path, headers)
-      post.body = body
+    
+      if open_body
+        post.body = body_without_cred
+      else
+        post.body = body
+      end
 
       response = http.start { |http| http.request(post) }
 
       @response = Response.new(self, response)
+    end
+
+    def open_body
+      return @command == "GetSessionID" || @command == "FetchTokenRequest"
     end
 
     def to_s

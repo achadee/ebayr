@@ -1,3 +1,5 @@
+require 'xmlsimple'
+
 # -*- encoding : utf-8 -*-
 module Ebayr #:nodoc:
   # Encapsulates a request which is sent to the eBay Trading API.
@@ -21,7 +23,7 @@ module Ebayr #:nodoc:
     end
     
     def input_xml
-      self.class.xml(@input)
+      XmlSimple.xml_out(@input, KeepRoot: true, NoAttr: true)
     end
 
     # Gets the path to which this request will be posted
@@ -71,7 +73,7 @@ module Ebayr #:nodoc:
       http.read_timeout = @http_timeout
 
       # Output request XML if debug flag is set
-      puts body if debug == true
+      # puts body if debug == true
 
       if @uri.port == 443
         http.use_ssl = true
@@ -81,10 +83,13 @@ module Ebayr #:nodoc:
       post = Net::HTTP::Post.new(@uri.path, headers)
     
       if open_body
-        post.body = body_without_cred
+        post.body = body_without_cred.gsub("<anon>", "").gsub("</anon>", "")
       else
-        post.body = body
+        post.body = body.gsub("<anon>", "").gsub("</anon>", "")
       end
+
+      puts post.body
+
 
       response = http.start { |http| http.request(post) }
 
@@ -92,7 +97,7 @@ module Ebayr #:nodoc:
     end
 
     def open_body
-      return @command == "GetSessionID" || @command == "FetchTokenRequest"
+      return @command == "GetSessionID" || @command == "FetchToken"
     end
 
     def to_s
